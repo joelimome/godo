@@ -1,3 +1,4 @@
+# vim: ft=python
 
 import os
 

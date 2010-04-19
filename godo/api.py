@@ -31,10 +31,13 @@ def task(func):
 
 class cd(object):
     def __init__(self, path):
+        self.cwd = None
         self.path = path
     def __enter__(self):
+        self.cwd = os.getcwd()
         os.chdir(self.path)
     def __exit__(self, exc_typ, exc_inst, exc_tb):
+        os.chdir(self.cwd)
         return False
 
 def run(cmd, input=None):

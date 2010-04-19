@@ -1,3 +1,4 @@
+# vim: ft=python
 
 @task
 def cfgval(cfg):

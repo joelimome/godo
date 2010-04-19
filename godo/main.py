@@ -44,25 +44,30 @@ def run():
         parser.error("Unknown arguments: %s" % " ".join(args))
  
     configure_logging(opts)
- 
+
+    basedir = args[0] if len(args) else os.getcwd()
+
     log.info("Loading configuration.")
 
-    if opts.cfg or os.path.isfile("godo.cfg.py"):
-        fname = opts.cfg or "godo.cfg.py"
-        cfg = load_config(fname)
+    cfgfname = os.path.join(basedir, "godo.cfg.py")
+    if opts.cfg or os.path.isfile(cfgfname):
+        if opts.cfg:
+            cfgfname = opts.cfg
+        cfg = load_config(cfgfname)
     else:
         cfg = {}
 
     log.info("Loading task definitions.")
 
+
     tasklist = []
-    for path, dnames, fnames in os.walk(os.getcwd()):
+    for path, dnames, fnames in os.walk(basedir):
         # Not sure if this sort is strictly necessary
         # but it can affect ordering as shown by adding
         # reverse=True.
         dnames.sort()
         for fname in sorted(fnames):
-            if not fname.endswith(".py"):
+            if not fname.endswith(".gd"):
                 continue
             fname = os.path.join(path, fname)
             for (name, func) in load_tasks(fname):
@@ -103,7 +108,6 @@ def load_config(fname):
     execfile(fname, g, ret)
     for k, v in ret.iteritems():
         if inspect.isfunction(v):
-            print "Updating with: %s" % g.keys()
             v.func_globals.update(ret)
     return ret
 
