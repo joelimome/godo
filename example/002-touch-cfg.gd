@@ -2,8 +2,8 @@
 
 @task
 def cfgval(cfg):
-    print cfg['myvalue']
+    print cfg.myvalue
 
 @task
 def cfgfun(cfg):
-    print cfg["cfgfun"]()
+    print cfg.myfun()

@@ -14,7 +14,7 @@ Intended Audience :: Developers
 License :: OSI Approved :: MIT License
 Programming Language :: Python
 Topic :: Software Development :: Build Tools
-""".strip().split()
+""".strip().splitlines()
 
 ENTRIES="""
 [console_scripts]

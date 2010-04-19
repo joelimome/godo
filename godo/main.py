@@ -5,8 +5,8 @@ import os
 import sys
 
 import api
+import attrdict
 import odict
-
 
 LOG_LEVELS = {
     "critical": logging.CRITICAL,
@@ -56,7 +56,7 @@ def run():
             cfgfname = opts.cfg
         cfg = load_config(cfgfname)
     else:
-        cfg = {}
+        cfg = attrdict.attrdict()
 
     if opts.trace:
         log.info("Loading task definitions.")
@@ -107,7 +107,7 @@ def load_config(fname):
         "__name__": None,
         "__package__": None
     }
-    ret = {}
+    ret = attrdict.attrdict()
     execfile(fname, g, ret)
     for k, v in ret.iteritems():
         if inspect.isfunction(v):
