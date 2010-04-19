@@ -47,7 +47,8 @@ def run():
 
     basedir = args[0] if len(args) else os.getcwd()
 
-    log.info("Loading configuration.")
+    if opts.trace:
+        log.info("Loading configuration.")
 
     cfgfname = os.path.join(basedir, "godo.cfg.py")
     if opts.cfg or os.path.isfile(cfgfname):
@@ -57,8 +58,8 @@ def run():
     else:
         cfg = {}
 
-    log.info("Loading task definitions.")
-
+    if opts.trace:
+        log.info("Loading task definitions.")
 
     tasklist = []
     for path, dnames, fnames in os.walk(basedir):
@@ -73,7 +74,8 @@ def run():
             for (name, func) in load_tasks(fname):
                 tasklist.append((name, path, func))
 
-    log.info("Executing.")
+    if opts.trace:
+        log.info("Executing.")
 
     for (name, path, func) in tasklist:
         if opts.trace:
@@ -94,8 +96,9 @@ def run():
                 log.error("Error in task %s:\n    %s" % (name, str(inst)))
             sys.exit(1)
 
-    log.info("")
-    log.info("Finished.")
+    if opts.trace:
+        log.info("")
+        log.info("Finished.")
 
 def load_config(fname):
     g = {
