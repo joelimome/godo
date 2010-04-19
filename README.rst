@@ -24,6 +24,19 @@ Any file ending in .gd will be read and evaluated as a Python source file. Any
 function that is decorated by a the ``@task`` decorator will be added to the
 list of tasks to execute.
 
+Example ``mytasks.gd``::
+
+    import os
+
+    @task
+    def first_task():
+        print "Yay going and doing stuff!"
+
+    @task
+    def second_task(cfg):
+        print "A config option: %s" % cfg["whee"]
+
+
 Tasks are executed from the same directory where the file that defines them
 is located.
 
