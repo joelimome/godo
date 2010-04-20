@@ -12,5 +12,8 @@ def decfun(fun):
     @functools.wraps(fun)
     def noticerun():
         print "Running function: %s" % fun.func_name
-        fun()
+        try:
+            fun()
+        except:
+            raise
     return noticerun

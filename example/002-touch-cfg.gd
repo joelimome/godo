@@ -25,7 +25,12 @@ def setdel():
 def stuff_here():
     print "We have been decorated."
 
+def otherfun():
+    print "OHAI!"
+
 @task
 @cfg.decfun
 def with_global():
-    print os.popen("ls -alh")
+    print globals().keys()
+    print os
+    otherfun()

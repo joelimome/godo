@@ -71,13 +71,13 @@ def run():
             if not fname.endswith(".gd"):
                 continue
             fname = os.path.join(path, fname)
-            for (name, func) in load_tasks(fname, cfg):
-                tasklist.append((name, path, func))
+            for (name, func, glbls) in load_tasks(fname, cfg):
+                tasklist.append((name, path, func, glbls))
 
     if opts.trace:
         log.info("Executing.")
 
-    for (name, path, func) in tasklist:
+    for (name, path, func, glbls) in tasklist:
         if opts.trace:
             log.info("")
             log.info("%s %s %s" % ("==", name, "=="))
@@ -97,29 +97,26 @@ def run():
         log.info("Finished.")
 
 def load_config(fname):
-    g = {
+    ret = attrdict.attrdict({
         "__builtins__": __builtins__,
         "__file__": fname,
         "__name__": None,
         "__package__": None
-    }
-    ret = attrdict.attrdict()
-    execfile(fname, g, ret)
-    for k, v in ret.iteritems():
-        if inspect.isfunction(v):
-            v.func_globals.update(ret)
+    })
+    execfile(fname, ret, ret)
     return ret
 
 def load_tasks(fname, cfg):
+    glbls = mk_globals(fname, cfg)
     defs = odict.odict()
-    execfile(fname, mk_globals(fname, cfg), defs)
+    execfile(fname, glbls, defs)
+    glbls.update(defs)
     for name, func in defs.iteritems():
         if not callable(func) or not getattr(func, "__task__", False):
             continue
         if len(inspect.getargspec(func)[0]) > 1:
             raise ValueError("Invalid task function arity: %s" % name)
-        func.func_globals.update(defs)
-        yield name, func
+        yield name, func, glbls
 
 def mk_globals(fname, cfg):
     return {
