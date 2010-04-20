@@ -1,5 +1,7 @@
 # vim: ft=python
 
+import os
+
 @task
 def cfgval():
     print cfg.myvalue
@@ -22,3 +24,8 @@ def setdel():
 @cfg.decfun
 def stuff_here():
     print "We have been decorated."
+
+@task
+@cfg.decfun
+def with_global():
+    print os.popen("ls -alh")
