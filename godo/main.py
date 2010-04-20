@@ -71,7 +71,7 @@ def run():
             if not fname.endswith(".gd"):
                 continue
             fname = os.path.join(path, fname)
-            for (name, func) in load_tasks(fname):
+            for (name, func) in load_tasks(fname, cfg):
                 tasklist.append((name, path, func))
 
     if opts.trace:
@@ -83,12 +83,8 @@ def run():
             log.info("%s %s %s" % ("==", name, "=="))
             log.info("")
         try:
-            arity = len(inspect.getargspec(func)[0])
             with api.cd(path):
-                if arity == 1:
-                    func(cfg)
-                else:
-                    func()
+                func()
         except Exception, inst:
             if opts.trace:
                 log.exception("Error in task: %s" % name)
@@ -114,9 +110,9 @@ def load_config(fname):
             v.func_globals.update(ret)
     return ret
 
-def load_tasks(fname):
+def load_tasks(fname, cfg):
     defs = odict.odict()
-    execfile(fname, mk_globals(fname), defs)
+    execfile(fname, mk_globals(fname, cfg), defs)
     for name, func in defs.iteritems():
         if not callable(func) or not getattr(func, "__task__", False):
             continue
@@ -125,7 +121,7 @@ def load_tasks(fname):
         func.func_globals.update(defs)
         yield name, func
 
-def mk_globals(fname):
+def mk_globals(fname, cfg):
     return {
         "__builtins__": __builtins__,
         "__file__": fname,
@@ -134,7 +130,8 @@ def mk_globals(fname):
         "task": api.task,
         "cd": api.cd,
         "run": api.run,
-        "sudo": api.sudo
+        "sudo": api.sudo,
+        "cfg": cfg
     }
 
 def configure_logging(opts):

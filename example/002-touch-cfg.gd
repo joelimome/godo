@@ -1,15 +1,15 @@
 # vim: ft=python
 
 @task
-def cfgval(cfg):
+def cfgval():
     print cfg.myvalue
 
 @task
-def cfgfun(cfg):
+def cfgfun():
     print cfg.myfun()
 
 @task
-def setdel(cfg):
+def setdel():
     cfg.baz = 2
     assert cfg.baz == 2, "baz not set"
     del cfg.baz
@@ -17,3 +17,8 @@ def setdel(cfg):
         cfg.bar
     except AttributeError:
         print "YAY! not found"
+
+@task
+@cfg.decfun
+def stuff_here():
+    print "We have been decorated."
