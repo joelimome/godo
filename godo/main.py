@@ -6,17 +6,7 @@ import sys
 
 import api
 import attrdict
-import odict
-
-LOG_LEVELS = {
-    "critical": logging.CRITICAL,
-    "error": logging.ERROR,
-    "warning": logging.WARNING,
-    "info": logging.INFO,
-    "debug": logging.DEBUG
-}
-
-log = logging.getLogger(__name__)
+import task
 
 __usage__ = "%prog [OPTIONS] [BASE_DIRECTORY]"
 
@@ -27,10 +17,7 @@ def options():
         op.make_option('--log-file', dest='logfile', metavar='FILE',
             help='Log output destination. [stdout]'),
         op.make_option('--log-level', dest='loglevel', metavar='STRING',
-            help='Minimum log level severity. [info]'),
-        op.make_option('-T', '--trace', dest='trace', default=False,
-            action='store_true',
-            help='Show exception tracebacks on error.'),
+            help='Minimum log level severity. [info]')
     ]
 
 def run():
@@ -41,107 +28,62 @@ def run():
     opts, args = parser.parse_args()
 
     if len(args) > 1:
-        parser.error("Unknown arguments: %s" % " ".join(args))
- 
-    configure_logging(opts)
+        parser.error("Invalid arguments: %s" % " ".join(args))
 
     basedir = args[0] if len(args) else os.getcwd()
+    
+    configure_logging(opts)
+    cfg = load_config(basedir, opts.cfg)
+    mgr = task.TaskManager(cfg, basedir)
+    mgr.execute()
 
-    if opts.trace:
-        log.info("Loading configuration.")
-
-    cfgfname = os.path.join(basedir, "godo.cfg.py")
-    if opts.cfg or os.path.isfile(cfgfname):
-        if opts.cfg:
-            cfgfname = opts.cfg
-        cfg = load_config(cfgfname)
+def configure_logging(opts):
+    if opts.logfile:
+        handler = logging.FileHandler(opts['logfile'])
     else:
-        cfg = attrdict.attrdict()
+        handler = logging.StreamHandler()
 
-    if opts.trace:
-        log.info("Loading task definitions.")
+    format = r"%(message)s"
+    handler.setFormatter(logging.Formatter(format))
+    logging.getLogger().addHandler(handler)
 
-    tasklist = []
+    levels = {
+        "critical": logging.CRITICAL,
+        "error": logging.ERROR,
+        "warning": logging.WARNING,
+        "info": logging.INFO,
+        "debug": logging.DEBUG
+    }
+
+    levelname = (opts.loglevel or "info").lower()
+    loglevel = levels.get(levelname, logging.INFO)
+    logging.getLogger().setLevel(loglevel)
+
+def load_config(basedir, fname):
+    default = os.path.join(basedir, "godo.cfg.py")
+    cfgname = None
+    if fname and os.path.isfile(fname):
+        cfgname = fname
+    elif os.path.isfile(default):
+        cfgname = default
+    ret = attrdict.attrdict()
+    if cfgname is not None:
+        ret.update({
+            "__builtins__": __builtins__,
+            "__file__": os.path.basename(cfgname),
+            "__name__": None,
+            "__package__": None
+        })
+        execfile(cfgname, ret, ret)
+    return ret
+
+def load_stages(basedir, cfg):
+    stages = []
     for path, dnames, fnames in os.walk(basedir):
-        # Not sure if this sort is strictly necessary
-        # but it can affect ordering as shown by adding
-        # reverse=True.
         dnames.sort()
         for fname in sorted(fnames):
             if not fname.endswith(".gd"):
                 continue
             fname = os.path.join(path, fname)
-            for (name, func, glbls) in load_tasks(fname, cfg):
-                tasklist.append((name, path, func, glbls))
-
-    if opts.trace:
-        log.info("Executing.")
-
-    for (name, path, func, glbls) in tasklist:
-        if opts.trace:
-            log.info("")
-            log.info("%s %s %s" % ("==", name, "=="))
-            log.info("")
-        try:
-            with api.cd(path):
-                func()
-        except Exception, inst:
-            if opts.trace:
-                log.exception("Error in task: %s" % name)
-            else:
-                log.error("Error in task %s:\n    %s" % (name, str(inst)))
-            sys.exit(1)
-
-    if opts.trace:
-        log.info("")
-        log.info("Finished.")
-
-def load_config(fname):
-    ret = attrdict.attrdict({
-        "__builtins__": __builtins__,
-        "__file__": fname,
-        "__name__": None,
-        "__package__": None
-    })
-    execfile(fname, ret, ret)
-    return ret
-
-def load_tasks(fname, cfg):
-    glbls = mk_globals(fname, cfg)
-    defs = odict.odict()
-    execfile(fname, glbls, defs)
-    glbls.update(defs)
-    for name, func in defs.iteritems():
-        if not callable(func) or not getattr(func, "__task__", False):
-            continue
-        if len(inspect.getargspec(func)[0]) > 1:
-            raise ValueError("Invalid task function arity: %s" % name)
-        yield name, func, glbls
-
-def mk_globals(fname, cfg):
-    return {
-        "__builtins__": __builtins__,
-        "__file__": fname,
-        "__name__": None,
-        "__package__": None,
-        "task": api.task,
-        "cd": api.cd,
-        "run": api.run,
-        "sudo": api.sudo,
-        "cfg": cfg
-    }
-
-def configure_logging(opts):
-    handlers = []
-    if opts.logfile:
-        handlers.append(logging.FileHandler(opts['logfile']))
-    else:
-        handlers.append(logging.StreamHandler())
-
-    loglevel = (opts.loglevel or "info").lower()
-    loglevel = LOG_LEVELS.get(loglevel, logging.INFO)
-    log.setLevel(loglevel)
-    format = r"%(message)s"
-    for h in handlers:
-        h.setFormatter(logging.Formatter(format))
-        log.addHandler(h)
+            stages.append(stage.Stage(basedir, fname, cfg))
+    return stages
