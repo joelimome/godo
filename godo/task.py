@@ -39,6 +39,9 @@ class Task(object):
             with api.cd(self.path):
                 self.func()
 
+    def filter(self):
+        return False
+
 class TaskFile(object):
     DEFAULT_GLOBALS = {
         "__builtins__": __builtins__,
@@ -85,6 +88,15 @@ class TaskFile(object):
                 log.exception("Error in task: %s" % task.name)
                 sys.exit(1)
 
+    def filter(self):
+        pos = 0
+        while pos < len(self.tasks):
+            if self.tasks[pos].filter():
+                self.tasks.pop(pos)
+            else:
+                pos += 1
+        return len(self.tasks) < 1
+
 class TaskManager(object):
     FNAME_PATTERN = re.compile(r"(^\d+-)?(.*?)(.gd)?$") 
 
@@ -92,7 +104,8 @@ class TaskManager(object):
         self.cfg = cfg
         self.basedir = basedir
         self.max_depth = max_depth
-        self.tasks = self._load_runners(self.basedir, 0)
+        tasks = self._load_runners(self.basedir, 0)
+        self.tasks = self.filter(tasks)
 
     def execute(self, tasks=None, depth=0):
         if tasks is None:
@@ -104,6 +117,23 @@ class TaskManager(object):
             else:
                 t.execute()
     
+    def filter(self, tasks):
+        pos = 0
+        while pos < len(tasks):
+            if isinstance(tasks[pos][1], TaskFile):
+                if tasks[pos][1].filter():
+                    tasks.pop(pos)
+                else:
+                    pos += 1
+            else:
+                subtasks = self.filter(tasks[pos][1])
+                if not len(subtasks):
+                    tasks.pop(pos)
+                else:
+                    tasks[pos] = (tasks[pos][0], subtasks)
+                    pos += 1
+        return tasks
+
     def _load_runners(self, path, depth):
         if depth > self.max_depth:
             raise RuntimeError("Exceeded maximum stage recursion depth.")
