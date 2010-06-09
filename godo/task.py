@@ -140,10 +140,8 @@ class TaskManager(object):
         tasks = []
         for name in sorted(os.listdir(path)):
             abspath = os.path.join(path, name)
-            print name
             if os.path.isdir(abspath):
                 subdir = os.path.join(path, name)
-                print subdir
                 tasks.append((name, self._load_runners(subdir, depth+1)))
             elif os.path.isfile(os.path.join(path, abspath)):
                 if not name.endswith(".gd"):
