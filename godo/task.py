@@ -139,10 +139,13 @@ class TaskManager(object):
             raise RuntimeError("Exceeded maximum stage recursion depth.")
         tasks = []
         for name in sorted(os.listdir(path)):
-            if os.path.isdir(name):
+            abspath = os.path.join(path, name)
+            print name
+            if os.path.isdir(abspath):
                 subdir = os.path.join(path, name)
+                print subdir
                 tasks.append((name, self._load_runners(subdir, depth+1)))
-            elif os.path.isfile(os.path.join(path, name)):
+            elif os.path.isfile(os.path.join(path, abspath)):
                 if not name.endswith(".gd"):
                     continue
                 fn = os.path.join(path, name)
