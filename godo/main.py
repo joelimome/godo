@@ -14,6 +14,8 @@ def options():
     return [
         op.make_option('-c', '--cfg', dest='cfg', metavar='FILE',
             help='Path to a config file to load. [./godo.cfg.py]'),
+        op.make_option('-l', dest='lib', metavar='DIR',
+            help="Add a DIR to the Python path."),
         op.make_option('--log-file', dest='logfile', metavar='FILE',
             help='Log output destination. [stdout]'),
         op.make_option('--log-level', dest='loglevel', metavar='STRING',
@@ -31,6 +33,13 @@ def run():
         parser.error("Invalid arguments: %s" % " ".join(args))
 
     basedir = args[0] if len(args) else os.getcwd()
+    
+    if opts.lib is not None:
+        sys.path.insert(0, opts.lib)
+    else:
+        libdir = os.path.join(basedir, "lib")
+        if os.path.isdir(libdir):
+            sys.path.insert(0, libdir)
     
     configure_logging(opts)
     cfg = load_config(basedir, opts.cfg)
