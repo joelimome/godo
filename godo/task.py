@@ -12,32 +12,15 @@ import odict
 
 log = logging.getLogger()
 
-class OutputBuffer(object):
-    def __init__(self):
-        self.buf = StringIO.StringIO()
-    
-    def __enter__(self):
-        sys.stdout = self.buf
-        sys.stderr = self.buf
-    
-    def __exit__(self, exc_type, exc_inst, traceback):
-        sys.stdout = sys.__stdout__
-        sys.stderr = sys.__stderr__
-
-    def getvalue(self):
-        return self.buf.getvalue()
-
 class Task(object):
     def __init__(self, path, name, func):
         self.path = path
         self.name = name
         self.func = func
-        self.buf = OutputBuffer()
     
     def execute(self):
-        with self.buf:
-            with api.cd(self.path):
-                self.func()
+        with api.cd(self.path):
+            self.func()
 
     def filter(self):
         return False
@@ -84,7 +67,6 @@ class TaskFile(object):
                 log.info("%s-> %s" % (" " * self.depth, task.name))
                 task.execute()
             except Exception, inst:
-                log.error("Output:\n%s\n%s", "-" * 12, task.buf.getvalue())
                 log.exception("Error in task: %s" % task.name)
                 sys.exit(1)
 
